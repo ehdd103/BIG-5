@@ -47,15 +47,26 @@ export interface SavedResult {
   id: string;
   date: string;
   name?: string;
+  totalQuestions: number;
   answers: (number | null)[];
   domainPct: Record<DomainCode, number>;
   facetPct: Record<string, number>;
 }
 
 export interface ProgressState {
+  totalQuestions: number;
   answers: (number | null)[];
   page: number;
   updatedAt: string;
 }
 
 export type GradeLevel = '매우 높음' | '높음' | '보통' | '낮음' | '매우 낮음';
+
+export interface TestPreset {
+  count: number;
+  name: string;
+  badge: string;
+  time: string;
+  desc: string;
+  isPopular?: boolean;
+}

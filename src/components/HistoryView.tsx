@@ -83,6 +83,9 @@ export function HistoryView({
                   <div className="flex items-center gap-2 text-xs text-slate-500">
                     <Calendar className="w-3.5 h-3.5 text-slate-400" />
                     <span>{formattedDate}</span>
+                    <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded text-[11px] border border-indigo-100">
+                      {item.totalQuestions || 300}문항 모드
+                    </span>
                     {item.name && (
                       <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.2 rounded text-[11px]">
                         {item.name}

@@ -17,6 +17,7 @@ import { MBTIComparisonSection } from './components/MBTIComparisonSection';
 
 export function App() {
   const [currentTab, setCurrentTab] = useState<'home' | 'test' | 'result' | 'history' | 'compare'>('home');
+  const [selectedQuestionCount, setSelectedQuestionCount] = useState<number>(120); // Default to 120 (recommended)
   const [progress, setProgress] = useState<ProgressState | null>(null);
   const [savedResults, setSavedResults] = useState<SavedResult[]>([]);
   const [activeResult, setActiveResult] = useState<SavedResult | null>(null);
@@ -27,7 +28,11 @@ export function App() {
   }, []);
 
   const refreshData = () => {
-    setProgress(loadProgress());
+    const p = loadProgress();
+    setProgress(p);
+    if (p && p.totalQuestions) {
+      setSelectedQuestionCount(p.totalQuestions);
+    }
     setSavedResults(loadSavedResults());
   };
 
@@ -41,20 +46,19 @@ export function App() {
   };
 
   // Test completed
-  const handleTestComplete = (answers: number[]) => {
-    const scores = calculateScores(answers);
-    const newSaved = saveResult(answers, scores, '응시자');
+  const handleTestComplete = (answers: number[], totalQuestions: number) => {
+    const scores = calculateScores(answers, totalQuestions);
+    const newSaved = saveResult(answers, scores, totalQuestions, '응시자');
     clearProgress();
     refreshData();
     setActiveResult(newSaved);
     setCurrentTab('result');
   };
 
-  // View sample result
+  // View sample result with selected count
   const handleViewSample = () => {
-    // Generate realistic, rich psychological test response
-    const sampleAnswers = QUESTIONS.map((q) => {
-      // Create interesting profile: High Openness, High Conscientiousness, Moderate Extraversion, Low Neuroticism
+    const sampleActiveQuestions = QUESTIONS.slice(0, selectedQuestionCount);
+    const sampleAnswers = sampleActiveQuestions.map((q) => {
       const facetDomain = q.facet[0].toUpperCase();
       let tendency = 3;
       if (facetDomain === 'O') tendency = q.positive ? 4 : 2;
@@ -63,17 +67,16 @@ export function App() {
       else if (facetDomain === 'A') tendency = q.positive ? 4 : 2;
       else if (facetDomain === 'N') tendency = q.positive ? 2 : 4;
 
-      // Add slight jitter (1 to 5)
       const jitter = (q.id % 3) - 1;
-      const val = Math.max(1, Math.min(5, tendency + jitter));
-      return val;
+      return Math.max(1, Math.min(5, tendency + jitter));
     });
 
-    const sampleScores = calculateScores(sampleAnswers);
+    const sampleScores = calculateScores(sampleAnswers, selectedQuestionCount);
     const sampleResult: SavedResult = {
       id: 'sample-result-demo',
       date: new Date().toISOString(),
-      name: '샘플 진단 (예시)',
+      name: `샘플 진단 (${selectedQuestionCount}문항)`,
+      totalQuestions: selectedQuestionCount,
       answers: sampleAnswers,
       domainPct: sampleScores.domainPct,
       facetPct: sampleScores.facetPct
@@ -103,6 +106,8 @@ export function App() {
           <IntroView
             progress={progress}
             savedResults={savedResults}
+            selectedCount={selectedQuestionCount}
+            onSelectCount={setSelectedQuestionCount}
             onStartTest={handleStartTest}
             onViewSample={handleViewSample}
             onViewHistory={() => setCurrentTab('history')}
@@ -111,6 +116,7 @@ export function App() {
 
         {currentTab === 'test' && (
           <TestView
+            totalQuestions={progress?.totalQuestions || selectedQuestionCount}
             initialAnswers={progress?.answers}
             initialPage={progress?.page || 1}
             onComplete={handleTestComplete}
@@ -151,7 +157,7 @@ export function App() {
                 onClick={() => handleStartTest(false)}
                 className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition-all cursor-pointer"
               >
-                검사 시작하기
+                검사 시작하기 ({selectedQuestionCount}문항)
               </button>
             </div>
             <MBTIComparisonSection />

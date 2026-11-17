@@ -62,14 +62,15 @@ export function PrintReport({ result, onClose }: PrintReportProps) {
                 Official Psychometric Report
               </span>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                IPIP-NEO-300 정밀 성격 진단 보고서
+                IPIP-NEO {result.totalQuestions || 300}문항 성격 진단 보고서
               </h1>
               <p className="text-xs text-slate-500 mt-1">
-                세계 표준 5대 성격 요인 모델 (Big Five / NEO-PI-R 30 Facets)
+                세계 표준 5대 성격 요인 모델 (Big Five / NEO-PI-R 30 Facets 정밀 척도)
               </p>
             </div>
             <div className="text-right text-xs text-slate-600 space-y-0.5">
               <div><strong className="text-slate-800">응시자:</strong> {result.name || '익명'}</div>
+              <div><strong className="text-slate-800">검사 규격:</strong> {result.totalQuestions || 300}문항 모드</div>
               <div><strong className="text-slate-800">검사일:</strong> {formattedDate}</div>
               <div className="text-[10px] text-slate-400 font-mono">ID: {result.id}</div>
             </div>

@@ -64,7 +64,7 @@ export function ResultView({ result, onRetest, onViewHistory }: ResultViewProps)
         <div className="max-w-4xl mx-auto text-center space-y-4">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-indigo-200 text-xs font-semibold">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>IPIP-NEO-300 정밀 진단 완료</span>
+            <span>IPIP-NEO {result.totalQuestions || 300}문항 정밀 진단 완료</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight">
@@ -378,6 +378,7 @@ export function ResultView({ result, onRetest, onViewHistory }: ResultViewProps)
           facetCode={selectedFacet}
           score={result.facetPct[selectedFacet] || 0}
           answers={result.answers}
+          totalQuestions={result.totalQuestions || 300}
           onClose={() => setSelectedFacet(null)}
         />
       )}

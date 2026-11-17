@@ -7,10 +7,11 @@ interface FacetModalProps {
   facetCode: FacetCode | null;
   score: number;
   answers: (number | null)[];
+  totalQuestions?: number;
   onClose: () => void;
 }
 
-export function FacetModal({ facetCode, score, answers, onClose }: FacetModalProps) {
+export function FacetModal({ facetCode, score, answers, totalQuestions = 300, onClose }: FacetModalProps) {
   if (!facetCode) return null;
 
   const facet = FACETS[facetCode];
@@ -18,8 +19,8 @@ export function FacetModal({ facetCode, score, answers, onClose }: FacetModalPro
   const grade = getGradeLabel(score);
   const badgeStyle = getGradeBadgeClass(grade);
 
-  // Find 10 questions for this facet
-  const facetQuestions = QUESTIONS.filter((q) => q.facet === facetCode);
+  // Find questions for this facet within the test's scope
+  const facetQuestions = QUESTIONS.filter((q) => q.facet === facetCode && q.id <= totalQuestions);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
@@ -59,7 +60,7 @@ export function FacetModal({ facetCode, score, answers, onClose }: FacetModalPro
         {/* Modal Body: 10 Questions and User's responses */}
         <div className="p-6 overflow-y-auto space-y-4 flex-1">
           <div className="flex items-center justify-between text-xs text-slate-500 font-semibold px-1">
-            <span>진단 문항 (총 10문항)</span>
+            <span>진단 문항 (총 {facetQuestions.length}문항)</span>
             <span>나의 응답</span>
           </div>
 

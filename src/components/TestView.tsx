@@ -13,26 +13,30 @@ import { QUESTIONS, SCALE_OPTIONS } from '../data/big5Data';
 import { saveProgress } from '../utils/scoring';
 
 interface TestViewProps {
+  totalQuestions?: number;
   initialAnswers?: (number | null)[];
   initialPage?: number;
-  onComplete: (answers: number[]) => void;
+  onComplete: (answers: number[], totalQuestions: number) => void;
   onExit: () => void;
 }
 
 const PAGE_SIZE = 30;
-const TOTAL_PAGES = 10; // 300 / 30
 
 export function TestView({ 
+  totalQuestions = 300,
   initialAnswers, 
   initialPage = 1, 
   onComplete, 
   onExit 
 }: TestViewProps) {
+  const activeQuestions = QUESTIONS.slice(0, totalQuestions);
+  const totalPages = Math.ceil(totalQuestions / PAGE_SIZE);
+
   const [answers, setAnswers] = useState<(number | null)[]>(() => {
-    if (initialAnswers && initialAnswers.length === QUESTIONS.length) {
-      return [...initialAnswers];
+    if (initialAnswers && initialAnswers.length >= totalQuestions) {
+      return initialAnswers.slice(0, totalQuestions);
     }
-    return new Array(QUESTIONS.length).fill(null);
+    return new Array(totalQuestions).fill(null);
   });
 
   const [currentPage, setCurrentPage] = useState<number>(initialPage);
@@ -46,22 +50,22 @@ export function TestView({
 
   // Current page question slice
   const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const endIndex = startIndex + PAGE_SIZE;
-  const currentQuestions = QUESTIONS.slice(startIndex, endIndex);
+  const endIndex = Math.min(startIndex + PAGE_SIZE, totalQuestions);
+  const currentQuestions = activeQuestions.slice(startIndex, endIndex);
 
   // Completed count overall and current page
   const totalAnswered = answers.filter((a) => a !== null).length;
   const pageAnsweredCount = currentQuestions.filter((q) => answers[q.id - 1] !== null).length;
-  const isPageComplete = pageAnsweredCount === PAGE_SIZE;
-  const progressPct = Math.round((totalAnswered / QUESTIONS.length) * 100);
+  const isPageComplete = pageAnsweredCount === currentQuestions.length;
+  const progressPct = Math.round((totalAnswered / totalQuestions) * 100);
 
   // Auto-save whenever answers change
   useEffect(() => {
-    saveProgress(answers, currentPage);
+    saveProgress(answers, currentPage, totalQuestions);
     setSaveIndicator(true);
     const timer = setTimeout(() => setSaveIndicator(false), 1200);
     return () => clearTimeout(timer);
-  }, [answers, currentPage]);
+  }, [answers, currentPage, totalQuestions]);
 
   // Scroll to first unanswered question on page change
   useEffect(() => {
@@ -143,13 +147,11 @@ export function TestView({
   // Keyboard shortcut handler (keys 1~5)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if typing inside input
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
 
       const keyVal = parseInt(e.key, 10);
       if (keyVal >= 1 && keyVal <= 5) {
         e.preventDefault();
-        // Answer currently active question
         if (activeQuestionId) {
           handleSelectAnswer(activeQuestionId, keyVal);
         }
@@ -164,17 +166,15 @@ export function TestView({
   const handleNextPage = () => {
     if (!isPageComplete) return;
 
-    if (currentPage < TOTAL_PAGES) {
+    if (currentPage < totalPages) {
       setCurrentPage((prev) => prev + 1);
     } else {
-      // Complete test! Celebrate!
       confetti({
         particleCount: 150,
         spread: 80,
         origin: { y: 0.6 }
       });
-      // All 300 answers guaranteed
-      onComplete(answers as number[]);
+      onComplete(answers as number[], totalQuestions);
     }
   };
 
@@ -199,16 +199,16 @@ export function TestView({
                 <Home className="w-4 h-4" />
               </button>
               <span className="font-bold text-sm text-slate-900">
-                페이지 {currentPage} <span className="text-slate-400 font-normal">/ {TOTAL_PAGES}</span>
+                페이지 {currentPage} <span className="text-slate-400 font-normal">/ {totalPages}</span>
               </span>
               <span className="text-xs text-slate-500 font-medium hidden sm:inline">
-                ({startIndex + 1} ~ {Math.min(endIndex, QUESTIONS.length)}번 문항)
+                ({startIndex + 1} ~ {endIndex}번 문항)
               </span>
             </div>
 
             <div className="flex items-center gap-3">
               <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100">
-                {totalAnswered} / {QUESTIONS.length} 완료 ({progressPct}%)
+                {totalAnswered} / {totalQuestions} 완료 ({progressPct}%)
               </span>
               <div className="flex items-center gap-1 text-[11px] text-slate-400">
                 <Save className="w-3.5 h-3.5" />
@@ -335,7 +335,7 @@ export function TestView({
           {!isPageComplete && (
             <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200/60">
               <AlertCircle className="w-4 h-4" />
-              <span>현재 페이지 {PAGE_SIZE - pageAnsweredCount}개 문항에 더 응답해주세요</span>
+              <span>현재 페이지 {currentQuestions.length - pageAnsweredCount}개 문항에 더 응답해주세요</span>
             </div>
           )}
 
@@ -348,7 +348,7 @@ export function TestView({
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
             }`}
           >
-            <span>{currentPage === TOTAL_PAGES ? '결과 분석하기 (검사 완료)' : '다음 페이지'}</span>
+            <span>{currentPage === totalPages ? '결과 분석하기 (검사 완료)' : '다음 페이지'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

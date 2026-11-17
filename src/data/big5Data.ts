@@ -1,7 +1,7 @@
 // IPIP-NEO-300 공인 데이터셋
 // 번역: 김종범, 김지용, 최묘경 / 원작: Lewis R. Goldberg (ORI)
 
-import type { DomainCode, DomainInfo, FacetCode, FacetInfo, QuestionItem, InterpretationLevel } from '../types/big5';
+import type { DomainCode, DomainInfo, FacetCode, FacetInfo, QuestionItem, InterpretationLevel, TestPreset } from '../types/big5';
 
 export const DOMAINS: Record<DomainCode, DomainInfo> = {
   "N": {
@@ -2279,3 +2279,36 @@ export const MBTI_VS_BIG5 = {
     { mbtiDim: 'MBTI에 없음 (-T / -A)', big5Domain: 'N (신경성)', desc: '스트레스 민감도, 정서적 불안정성, 회복탄력성' }
   ]
 };
+
+export const TEST_PRESETS: TestPreset[] = [
+  {
+    count: 30,
+    name: '초고속 모드',
+    badge: '3분 컷',
+    time: '약 2~3분',
+    desc: '핵심만 빠르게! 30개 모든 Facet을 1문항씩 가볍게 훑어봅니다.'
+  },
+  {
+    count: 60,
+    name: '약식 검사',
+    badge: '5분 추천',
+    time: '약 5분',
+    desc: 'Facet당 2문항(긍정/부정)으로 구성되어 가성비 높은 빠른 진단.'
+  },
+  {
+    count: 120,
+    name: '표준 검사 (IPIP-120)',
+    badge: '연구 표준',
+    time: '약 10분',
+    desc: '글로벌 심리학 연구에서 가장 대중적인 IPIP-120 표준 규격.',
+    isPopular: true
+  },
+  {
+    count: 300,
+    name: '정밀 마스터 (IPIP-300)',
+    badge: '최고 신뢰도',
+    time: '약 20~25분',
+    desc: '학술 연구용 풀버전. Facet당 10문항으로 성격을 가장 정밀하게 분석.'
+  }
+];
+

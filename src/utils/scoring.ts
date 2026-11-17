@@ -1,35 +1,43 @@
 import type { DomainCode, GradeLevel, InterpretationLevel, ProgressState, SavedResult, ScoreResult } from '../types/big5';
 import { FACETS, QUESTIONS, DOMAIN_INTERPRETATIONS } from '../data/big5Data';
 
-const STORAGE_KEY_PROGRESS = 'big5_current_progress_v1';
-const STORAGE_KEY_SAVED_RESULTS = 'big5_saved_results_v1';
+const STORAGE_KEY_PROGRESS = 'big5_current_progress_v2';
+const STORAGE_KEY_SAVED_RESULTS = 'big5_saved_results_v2';
 
 /**
- * 300문항 응답 배열(1~5, 미응답은 null)을 받아
+ * 응답 배열(1~5, 미응답은 null)과 전체 문항수(30~300)를 받아
  * Facet 원점수, Facet 백분위 점수(0~100), 5대 도메인 평균 점수(0~100)를 산출합니다.
  */
-export function calculateScores(answers: (number | null)[]): ScoreResult {
-  // 1. Facet 원점수 집계 (최소 10점 ~ 최대 50점)
+export function calculateScores(answers: (number | null)[], totalQuestions: number = 300): ScoreResult {
+  const activeQuestions = QUESTIONS.slice(0, totalQuestions);
+
+  // 1. Facet별 문항 개수(k) 및 원점수 집계
   const facetRaw: Record<string, number> = {};
+  const facetItemCount: Record<string, number> = {};
+
   Object.keys(FACETS).forEach((facetKey) => {
     facetRaw[facetKey] = 0;
+    facetItemCount[facetKey] = 0;
   });
 
-  QUESTIONS.forEach((q) => {
+  activeQuestions.forEach((q) => {
+    facetItemCount[q.facet] = (facetItemCount[q.facet] || 0) + 1;
     const rawVal = answers[q.id - 1];
     if (rawVal === null || rawVal === undefined) return;
-    // 긍정 문항: 응답값 그대로 (1~5)
-    // 부정 문항: 역채점 6 - 응답값 (1->5, 2->4, 3->3, 4->2, 5->1)
+    // 긍정 문항: 그대로 (1~5), 부정 문항: 역채점 6 - raw (1->5, 5->1)
     const scoredVal = q.positive ? rawVal : 6 - rawVal;
     facetRaw[q.facet] = (facetRaw[q.facet] || 0) + scoredVal;
   });
 
-  // 2. Facet 백분율 점수 변환 (Min-Max Scaling: 10~50점을 0~100%로 환산)
+  // 2. Facet 백분율 점수 변환 (Min-Max Scaling)
+  // 문항수가 k개일 때: 최소점수 = k*1, 최대점수 = k*5, 점수범위 = 4*k
   const facetPct: Record<string, number> = {};
   Object.keys(facetRaw).forEach((facetKey) => {
     const raw = facetRaw[facetKey];
-    // (raw - min) / (max - min) * 100 = (raw - 10) / 40 * 100
-    facetPct[facetKey] = Math.round(((raw - 10) / 40) * 100);
+    const k = facetItemCount[facetKey] || 1;
+    const minVal = k * 1;
+    const range = k * 4;
+    facetPct[facetKey] = Math.round(((raw - minVal) / range) * 100);
   });
 
   // 3. 5대 핵심 도메인 점수 (각 도메인 소속 6개 Facet 백분율 점수의 산술 평균)
@@ -112,11 +120,12 @@ export function getDomainInterpretation(domain: DomainCode, score: number): Inte
  * LocalStorage 진행 상태 및 과거 검사 기록 관리 (100% 프라이빗)
  * ============================================================ */
 
-export function saveProgress(answers: (number | null)[], page: number): void {
+export function saveProgress(answers: (number | null)[], page: number, totalQuestions: number): void {
   try {
     const state: ProgressState = {
       answers,
       page,
+      totalQuestions,
       updatedAt: new Date().toISOString()
     };
     localStorage.setItem(STORAGE_KEY_PROGRESS, JSON.stringify(state));
@@ -146,12 +155,14 @@ export function clearProgress(): void {
 export function saveResult(
   answers: (number | null)[],
   scoreResult: ScoreResult,
+  totalQuestions: number = 300,
   name?: string
 ): SavedResult {
   const result: SavedResult = {
     id: Date.now().toString(),
     date: new Date().toISOString(),
     name: name?.trim() || undefined,
+    totalQuestions,
     answers: [...answers],
     domainPct: scoreResult.domainPct,
     facetPct: scoreResult.facetPct
